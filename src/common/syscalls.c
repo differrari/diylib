@@ -31,8 +31,6 @@ void printl(const char *str){
     puts(str);
 }
 
-char log_buf[1024];
-
 char *read_full_file(const char *path, size_t *out_size){
     if (strstart_case(path,"/resources",true) == 10)
         path++;

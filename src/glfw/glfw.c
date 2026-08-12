@@ -1,3 +1,4 @@
+#include <vulkan/vulkan.h>
 #include "glfw3.h"
 #include "graph_backend.h"
 #include "syscalls/syscalls.h"
@@ -7,18 +8,20 @@ GLFWwindow *_window = {};
 
 static void error_callback(int error, const char* description)
 {
-    print("Error: %s", description);
+    print("GLFW Error: %s", description);
+    halt(-1);
 }
 
 void win_make(){
-    glfwInit();
     glfwSetErrorCallback(error_callback);
-
-    glfwDefaultWindowHints();
-    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 #if __linux__
-    // glfwWindowHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-#endif
+    // glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
+    // glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+    // glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_TRUE);
+    #endif
+    glfwInit();
+    
+    glfwDefaultWindowHints();
 #if __APPLE__
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);

@@ -14,17 +14,19 @@ C_SRC := $(shell find ./src/common -name "*.c") $(shell sed ./vendored/redlib/si
 ifneq ($(WINDOW_BACKEND),)
 	INCLUDES += -I./src/$(WINDOW_BACKEND) 
 	C_SRC += $(shell find ./src/$(WINDOW_BACKEND) -name "*.c")
-# 	C_SRC += $(shell sed ./vendored/$(WINDOW_BACKEND)/simplemake -e '/^[[:space:]]*#/d' -e 's|^|./vendored/$(WINDOW_BACKEND)/|')
+	C_SRC += $(shell sed ./vendored/$(WINDOW_BACKEND)/simplemake -e '/^[[:space:]]*#/d' -e 's|^|./vendored/$(WINDOW_BACKEND)/|')
+
+CFLAGS += -fPIC
 
 PLATFORM = linux
 ifeq ($(PLATFORM),linux)
-# 	CFLAGS += -D_GLFW_X11 -Ibuild
+	CFLAGS += -D_GLFW_X11 -D_GLFW_WAYLAND -DHAVE_MEMFD_CREATE -D_DEFAULT_SOURCE -I$(BUILD_DIR)/wayland
 else ifeq ($(PLATFORM),windows)
 	CFLAGS += -D_GLFW_WIN32 -D_CRT_NO_SECURE_WARNINGS
 else ifeq ($(PLATFORM),macos)
 	CFLAGS += -D_GLFW_COCOA
 endif
- CFLAGS += -DPLATFORM_DESKTOP_GLFW -DGRAPHICS_API_OPENGL_33
+#  CFLAGS += -DPLATFORM_DESKTOP_GLFW -DGRAPHICS_API_OPENGL_33
 endif
 
 ifneq ($(GRAPH_BACKEND),)
@@ -43,22 +45,15 @@ DEP     := $(C_SRC:%.c=$(BUILD_DIR)/%.d)
 
 TARGET  := ./diylib.a
 
-.PHONY: all clean prepare glfw redlib raylib
+.PHONY: all clean prepare
 
-all: prepare glfw redlib raylib $(TARGET)
+all: prepare $(TARGET)
 	@echo "C SOURCES $(C_SRC)"
 
 prepare:
 	@echo $(C_SRC) 
 	mkdir -p $(BUILD_DIR)
-
-# raylib:
-# 	make -f $(shell pwd)/SimpleMakefile -C vendored/raylib
-
-# glfw:
-# 	make -f $(shell pwd)/SimpleMakefile -C vendored/glfw
-
-# three2d:
+	./gen_wayland
 
 $(TARGET): $(OBJ)
 	@echo "Finishing build $(ARCH)"
@@ -67,7 +62,7 @@ $(TARGET): $(OBJ)
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(VCC) $(CFLAGS) -std=gnu99 $(INCLUDES) -DCROSS -c $< -lc -lm -o $@
+	$(VCC) $(CFLAGS) -std=gnu99 $(INCLUDES) -DCROSS -c $< -o $@
 
 clean:
 	$(RM) ./$(TARGET)
