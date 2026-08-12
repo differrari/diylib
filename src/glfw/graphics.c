@@ -11,9 +11,7 @@
 
 extern void free(void*ptr);
 
-#define CONVERT_COLOR(color) ((color & 0xFF00FF00) | ((color & 0xFF) << 16) | ((color >> 16) & 0xFF))
-
-GLFWwindow* _window;
+GLFWwindow* _window = {};
 
 void destroy_draw_ctx(draw_ctx *ctx){
     glfwTerminate();
@@ -92,6 +90,7 @@ void request_draw_ctx(draw_ctx *ctx){
 #if __linux__
     glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 #endif
+    graph_setup();
     glfwInit();
     glfwSetErrorCallback(error_callback);
 

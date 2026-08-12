@@ -6,6 +6,7 @@
 #include "types.h"
 #include "graphic_types.h"
 
+void graph_setup();//Before init
 void graph_init();
 void graph_make_viewport(u32 w, u32 h);
 void graph_resize_viewport(draw_ctx *ctx, u32 w, u32 h);
