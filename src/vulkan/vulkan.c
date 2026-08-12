@@ -164,6 +164,7 @@ void graph_init(){
         vkcheck(gvk_make_ldevice(), "making logical device");
         puts("Vulkan init done");
     }
+    puts("Vulkan failed to get window extensions");
 }
 
 VkSurfaceKHR surface;

@@ -1,6 +1,5 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
-#include <vulkan/vulkan_core.h>
 #include "graph_backend.h"
 #include "syscalls/syscalls.h"
 
@@ -12,6 +11,9 @@ void graph_setup(){
 
 const char** window_make_vk_extensions(uint32_t *amount){
     if (!amount) return 0;
+
+    if (!glfwVulkanSupported())
+        return 0;
 
     return glfwGetRequiredInstanceExtensions(amount);
 }
