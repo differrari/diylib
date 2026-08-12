@@ -1,0 +1,41 @@
+ARCH       := 
+ifeq "$(origin CC)" "default"
+CC         := $(ARCH)gcc
+endif
+ifeq "$(origin CXX)" "default"
+CXX        := $(ARCH)g++
+endif
+LD         := $(ARCH)ld
+AR         := $(ARCH)ar
+OBJCOPY    := $(ARCH)objcopy
+
+BUILD_DIR := ./.build
+
+COMMON_FLAGS  ?= -fno-exceptions -fno-unwind-tables \
+                 -fno-asynchronous-unwind-tables -g -O0 -Wall -Wextra \
+                 -Wno-unused-parameter -Wno-address-of-packed-member \
+                 -Wno-unused-function -Wno-error=format-extra-args \
+
+CFLAGS_BASE   ?= $(COMMON_FLAGS) -std=c99
+CXXFLAGS_BASE ?= $(COMMON_FLAGS) -fno-rtti
+LDFLAGS_BASE  ?=
+
+LOAD_ADDR      ?= 0x41000000
+XHCI_CTX_SIZE  ?= 32
+QEMU           ?= true
+MODE           ?= virt
+TEST           ?= false
+
+ifeq ($(V), 1)
+  VAR  = $(AR)
+  VAS  = $(CC)
+  VCC  = $(CC)
+  VCXX = $(CXX)
+  VLD  = $(LD)
+else
+  VAR  = @echo "  [AR]   $<" && $(AR)
+  VAS  = @echo "  [AS]   $<" && $(CC)
+  VCC  = @echo "  [CC]   $<" && $(CC)
+  VCXX = @echo "  [CXX]  $<" && $(CXX)
+  VLD  = @echo "  [LD]   $<" && $(LD)
+endif

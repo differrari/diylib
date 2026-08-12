@@ -1,0 +1,12 @@
+[submodule "vendored/glfw"]
+	path = vendored/glfw
+	url = git@github.com:differrari/glfw.git
+[submodule "vendored/redlib"]
+	path = vendored/redlib
+	url = git@github.com:differrari/redlib.git
+[submodule "vendored/three2d"]
+	path = vendored/three2d
+	url = git@github.com:differrari/three2d.git
+[submodule "vendored/raylib"]
+	path = vendored/raylib
+	url = git@github.com:differrari/raylib.git
