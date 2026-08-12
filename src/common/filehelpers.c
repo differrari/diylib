@@ -1,5 +1,3 @@
-#ifdef CROSS
-
 #include "files/helpers.h"
 #include <unistd.h>
 #include <sys/types.h>
@@ -89,5 +87,3 @@ buffer get_input_line(){
     print("reffub %s",buf.buffer);
     return buf;
 }
-
-#endif
