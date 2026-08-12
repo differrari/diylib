@@ -1,12 +1,13 @@
-#include "graph_backend.h"
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
 #endif
+#include "graph_backend.h"
+#include "win_backend.h"
 
 void graph_init(){
-
+    window_make_ctx();
 }
 
 void graph_render(draw_ctx *ctx){

@@ -86,6 +86,10 @@ static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
     scroll = yoffset;
 }
 
+void* window_make_ctx(){
+    glfwMakeContextCurrent(_window);
+}
+
 void request_draw_ctx(draw_ctx *ctx){
     uint32_t w = ctx->width ? ctx->width : 600;
     uint32_t h = ctx->height ? ctx->height : 300;
@@ -105,7 +109,8 @@ void request_draw_ctx(draw_ctx *ctx){
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
 #endif
     _window = glfwCreateWindow(w, h, "redlib", NULL, NULL);
-    glfwMakeContextCurrent(_window);//TODO: This belongs in the graphics, but still needs to be separate
+
+    graph_init();
 
     ctx->width = w;
     ctx->height = h;
