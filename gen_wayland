@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+WAYLAND_DIR="./vendored/glfw/deps/wayland"
+BUILD_DIR=".build/wayland"
+
+mkdir -p "$BUILD_DIR"
+
+for xml in "$WAYLAND_DIR"/*.xml; do
+    name="$(basename "$xml" .xml)"
+    wayland-scanner private-code "$xml" "$BUILD_DIR/${name}-client-protocol-code.h"
+    wayland-scanner client-header "$xml" "$BUILD_DIR/${name}-client-protocol.h"
+done
