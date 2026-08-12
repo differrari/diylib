@@ -1,20 +1,30 @@
 include ./common.mk
 
-WINDOW_BACKEND := glfw
+WINDOW_BACKEND := raylib
 GRAPH_BACKEND := opengl
 
-PLATFORM_INCLUDES := -I./vendored/glfw/include/GLFW
-# PLATFORM_INCLUDES := -I./vendored/raylib/src
-PLATFORM_LINKS := ./vendored/glfw/build/libglfw3.a
+# PLATFORM_INCLUDES := -I./vendored/glfw/include/GLFW
+PLATFORM_INCLUDES := -I./vendored/raylib/src
 
-LINKS := $(PLATFORM_LINKS) ./vendored/redlib/clibshared.a
+LINKS := ./vendored/redlib/clibshared.a
 INCLUDES := $(PLATFORM_INCLUDES) -I./vendored/redlib -I./vendored/three2d -I./src/common
 
-C_SRC := $(shell find ./src/common -name "*.c")
+C_SRC := $(shell find ./src/common -name "*.c") $(shell sed ./vendored/redlib/simplemake -e '/^[[:space:]]*#/d' -e 's|^|./vendored/redlib/|')
 
 ifneq ($(WINDOW_BACKEND),)
 	INCLUDES += -I./src/$(WINDOW_BACKEND) 
 	C_SRC += $(shell find ./src/$(WINDOW_BACKEND) -name "*.c")
+	C_SRC += $(shell sed ./vendored/$(WINDOW_BACKEND)/simplemake -e '/^[[:space:]]*#/d' -e 's|^|./vendored/$(WINDOW_BACKEND)/|')
+
+PLATFORM = linux
+ifeq ($(PLATFORM),linux)
+	CFLAGS += -D_GLFW_X11 -Ibuild
+else ifeq ($(PLATFORM),windows)
+	CFLAGS += -D_GLFW_WIN32 -D_CRT_NO_SECURE_WARNINGS
+else ifeq ($(PLATFORM),macos)
+	CFLAGS += -D_GLFW_COCOA
+endif
+CFLAGS += -DPLATFORM_DESKTOP_GLFW -DGRAPHICS_API_OPENGL_33
 endif
 
 ifneq ($(GRAPH_BACKEND),)
@@ -39,16 +49,14 @@ all: prepare glfw redlib raylib $(TARGET)
 	@echo "C SOURCES $(C_SRC)"
 
 prepare:
+	@echo $(C_SRC) 
 	mkdir -p $(BUILD_DIR)
 
-raylib:
-	make -C vendored/raylib/src PLATFORM=PLATFORM_DESKTOP
+# raylib:
+# 	make -f $(shell pwd)/SimpleMakefile -C vendored/raylib
 
-glfw:
-	make -C vendored/glfw
-
-redlib:
-	make -C vendored/redlib cross
+# glfw:
+# 	make -f $(shell pwd)/SimpleMakefile -C vendored/glfw
 
 # three2d:
 
@@ -59,7 +67,7 @@ $(TARGET): $(OBJ)
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(dir $@)
-	$(VCC) $(CFLAGS) -std=c99 $(INCLUDES) -DCROSS -c -MMD -MP $< -lc -lm -o $@
+	$(VCC) $(CFLAGS) -std=gnu99 $(INCLUDES) -DCROSS -c -MMD -MP $< -lc -lm -o $@
 
 clean:
 	$(RM) ./$(TARGET)
