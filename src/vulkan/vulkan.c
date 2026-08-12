@@ -166,8 +166,73 @@ void graph_init(){
     }
 }
 
+VkSurfaceKHR surface;
+
+extern VkResult window_make_vk_surface(VkInstance instance, VkSurfaceKHR *surface);
+
+VkResult gvk_can_present(){
+    VkBool32 presentSupport = false;
+    vkGetPhysicalDeviceSurfaceSupportKHR(pDevice, graphQueue, surface, &presentSupport);
+
+    return presentSupport ? VK_SUCCESS : VK_ERROR_FEATURE_NOT_PRESENT;
+}
+
+VkExtent2D surfaceExtent = {};
+VkSwapchainKHR swapChain = {};
+
+VkResult gvk_create_swapchain(){
+    VkSwapchainCreateInfoKHR scCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = surface,
+        .minImageCount = 2,
+        .imageFormat = VK_FORMAT_B8G8R8A8_SRGB,
+        .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+        .imageExtent = surfaceExtent,
+        .imageArrayLayers = 1,
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .presentMode = VK_PRESENT_MODE_FIFO_KHR,
+    };
+    
+    return vkCreateSwapchainKHR(lDevice, &scCreateInfo, 0, &swapChain);
+}
+
+VkImageView imgViews[8] = {};//TODO: This should be allocated, but the allocator is causing some weird issues right now so we're hardcoding
+
+VkResult gvk_make_swapchain_imageviews(){
+    u32 imageCount = 0;
+    vkGetSwapchainImagesKHR(lDevice, swapChain, &imageCount, 0);
+    VkImage swapChainImages[imageCount] = {};
+    vkGetSwapchainImagesKHR(lDevice, swapChain, &imageCount, swapChainImages);
+
+    for (u32 i = 0; i < imageCount; i++){
+        VkImageViewCreateInfo icreateInfo = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = swapChainImages[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = VK_FORMAT_B8G8R8A8_SRGB,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+        };
+
+        if (vkCreateImageView(lDevice, &icreateInfo, 0, &imgViews[i]) != VK_SUCCESS){
+            printf("No image view for you\n");
+            return VK_ERROR_UNKNOWN;
+        }
+    }
+    return VK_SUCCESS;
+}
+
 void graph_make_viewport(u32 w, u32 h){
-    puts("TODO: surface creation here");
+    vkcheck(window_make_vk_surface(instance, &surface), "creating surface");
+    vkcheck(gvk_can_present(), "no presentation support");
+    vkcheck(gvk_create_swapchain(), "creating swapchain");
+    vkcheck(gvk_make_swapchain_imageviews(), "making swapchain images");
+    surfaceExtent = (VkExtent2D){ w, h};
+    puts("Surface created, no fbs yet");
 }
 
 void graph_resize_viewport(draw_ctx *ctx, u32 w, u32 h){

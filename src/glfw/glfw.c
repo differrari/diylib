@@ -1,19 +1,29 @@
 #include "glfw3.h"
+#include "graph_backend.h"
+#include "syscalls/syscalls.h"
 
 GLFWwindow *_window = {};
 
+
+static void error_callback(int error, const char* description)
+{
+    print("Error: %s", description);
+}
+
 void win_make(){
     glfwInit();
-    // glfwSetErrorCallback(error_callback);
+    glfwSetErrorCallback(error_callback);
 
     glfwDefaultWindowHints();
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
 #if __linux__
-    glfwWindowHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+    // glfwWindowHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
 #endif
 #if __APPLE__
     glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
 #endif
+    graph_setup();
     _window = glfwCreateWindow(1920, 1080, "vulkantest", 0, 0);
 }
 
@@ -21,11 +31,6 @@ void win_prepare_input(){
     // glfwSetKeyCallback(_window, key_callback);
     // glfwSetCursorPosCallback(_window, cursor_position_callback);
     // glfwSetScrollCallback(_window, scroll_callback);
-}
-
-static void error_callback(int error, const char* description)
-{
-    // print("Error: %s", description);
 }
 
 // #define INPUT_BUFFER_CAPACITY 64

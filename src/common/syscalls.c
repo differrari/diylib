@@ -12,6 +12,7 @@
 extern void free(void *ptr);
 extern int puts(const char *str);
 extern void exit(int status);
+extern void* malloc(size_t size);
 
 #define ALIGN 0x1000
 void* page_alloc(size_t size) {
