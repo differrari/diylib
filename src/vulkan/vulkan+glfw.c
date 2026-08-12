@@ -1,16 +1,15 @@
 #include <vulkan/vulkan.h>
 #include <GLFW/glfw3.h>
+#include "graph_backend.h"
 
-extern GLFWwindow* _window;
+// extern GLFWwindow* _window;
 
 void graph_setup(){
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    // glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
-//NOTE: something about syscalls.h breaks this function, most likely an overwritten function, so don't use it in this file
-void graph_init(){
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
-    
-    glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+const char** window_make_vk_extensions(uint32_t *amount){
+    if (!amount) return 0;
+
+    return glfwGetRequiredInstanceExtensions(amount);
 }

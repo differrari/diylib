@@ -1,105 +1,45 @@
 #include "string/string.h"
 #include "ui/draw/draw.h"
 #include "alloc/allocate.h"
-#define GLFW_INCLUDE_NONE
-#include "glfw3.h"
 #include "keyboard_input.h"
 #include "mouse_input.h"
 #include "keycode_convert.h"
-#include "syscalls/syscalls.h"
+#include "win_backend.h"
 #include "graph_backend.h"
 
-extern void free(void*ptr);
-
-GLFWwindow* _window = {};
-
 void destroy_draw_ctx(draw_ctx *ctx){
-    glfwTerminate();
+    // glfwTerminate();
 }
 
 void commit_draw_ctx(draw_ctx *ctx){
-    graph_render(ctx);
-    glfwSwapBuffers(_window);
-    glfwPollEvents();
+    // graph_render(ctx);
+    // glfwSwapBuffers(_window);
+    // glfwPollEvents();
 }
 
 void resize_draw_ctx(draw_ctx *ctx, uint32_t width, uint32_t height){
-    release(ctx->fb);
-    ctx->width = width;
-    ctx->height = height;
-    ctx->fb = zalloc(width*height*sizeof(color));
-    ctx->stride = 4 * width;
-    glfwSetWindowSize(_window, width, height);
-    graph_resize_viewport(ctx, width, height);
+    // release(ctx->fb);
+    // ctx->width = width;
+    // ctx->height = height;
+    // ctx->fb = zalloc(width*height*sizeof(color));
+    // ctx->stride = 4 * width;
+    // glfwSetWindowSize(_window, width, height);
+    // graph_resize_viewport(ctx, width, height);
 }
 
-static void error_callback(int error, const char* description)
-{
-    print("Error: %s", description);
-}
+// extern void graph_test();
 
-#define INPUT_BUFFER_CAPACITY 64
-
-static kbd_event event_queue[INPUT_BUFFER_CAPACITY];
-static int kbd_event_read;
-static int kbd_event_write;
-static void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    uint32_t next_index = (kbd_event_write + 1) % INPUT_BUFFER_CAPACITY;
-
-    bool is_mod = (key >= GLFW_KEY_LEFT_SHIFT && key <= GLFW_KEY_RIGHT_SUPER);
-    key = glfw_to_redacted[key];
-
-    int press_ev = is_mod ? MOD_PRESS : KEY_PRESS;
-    int release_ev = is_mod ? MOD_RELEASE : KEY_RELEASE;
-    
-    event_queue[kbd_event_write] = (kbd_event){
-        .type = action == GLFW_PRESS || action == GLFW_REPEAT ? press_ev : release_ev,
-        .key = is_mod ? 0 : key,
-        .modifier = is_mod ? key : 0
-    };
-    kbd_event_write = next_index;
-
-    if (kbd_event_write == kbd_event_read)
-        kbd_event_read = (kbd_event_read + 1) % INPUT_BUFFER_CAPACITY;
-}
-
-double x_pos, y_pos;
-static int old_x = 0;
-static int old_y = 0;
-static double scroll;
-
-static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
-{
-    x_pos = xpos;
-    y_pos = ypos;
-}
-
-static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    scroll = yoffset;
-}
+extern void* malloc(size_t size);
 
 void request_draw_ctx(draw_ctx *ctx){
     uint32_t w = ctx->width ? ctx->width : 600;
     uint32_t h = ctx->height ? ctx->height : 300;
-    ctx->fb = zalloc(w*h*sizeof(color));
+    win_make();
+
+    ctx->fb = malloc(w*h*sizeof(color));//TODO: This has to be malloc due to some weird glfw/gtk mem corruption happening
     ctx->width = w;
     ctx->height = h;
-    ctx->stride = sizeof(color) * w;
-#if __linux__
-    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-#endif
-    graph_setup();
-    glfwInit();
-    glfwSetErrorCallback(error_callback);
-
-    glfwDefaultWindowHints();
-#if __APPLE__
-    glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
-    glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
-#endif
-    _window = glfwCreateWindow(w, h, "redlib", NULL, NULL);
+    ctx->stride = sizeof(color) * w;    
 
     graph_init();
 
@@ -108,34 +48,32 @@ void request_draw_ctx(draw_ctx *ctx){
     
     graph_make_viewport(w, h);
 
-    glfwSetKeyCallback(_window, key_callback);
-    glfwSetCursorPosCallback(_window, cursor_position_callback);
-    glfwSetScrollCallback(_window, scroll_callback);
 }
 
 bool read_event(kbd_event *out){
-    if (kbd_event_read == kbd_event_write) return false;
+    // if (kbd_event_read == kbd_event_write) return false;
 
-    *out = event_queue[kbd_event_read];
-    kbd_event_read = (kbd_event_read + 1) % INPUT_BUFFER_CAPACITY;
+    // *out = event_queue[kbd_event_read];
+    // kbd_event_read = (kbd_event_read + 1) % INPUT_BUFFER_CAPACITY;
     
-    return true;
+    // return true;
 }
 
 void get_mouse_status(mouse_data *in){
-    in->raw.scroll = (u8)scroll;
-    scroll = 0;
-    in->raw.buttons = 0;
-    for (int i = 0; i < 3; i++)
-        in->raw.buttons |= (glfwGetMouseButton(_window, i) & 1) << i;
-    in->raw.x = x_pos - old_x;
-    in->raw.y = y_pos - old_y;
-    in->position.x = x_pos;
-    in->position.y = y_pos;
-    old_x = x_pos;
-    old_y = y_pos;
+    // in->raw.scroll = (u8)scroll;
+    // scroll = 0;
+    // in->raw.buttons = 0;
+    // for (int i = 0; i < 3; i++)
+    //     in->raw.buttons |= (glfwGetMouseButton(_window, i) & 1) << i;
+    // in->raw.x = x_pos - old_x;
+    // in->raw.y = y_pos - old_y;
+    // in->position.x = x_pos;
+    // in->position.y = y_pos;
+    // old_x = x_pos;
+    // old_y = y_pos;
 }
 
 bool should_close_ctx(){
-    return glfwWindowShouldClose(_window);
+    return false;
+    // return glfwWindowShouldClose(_window);
 }
