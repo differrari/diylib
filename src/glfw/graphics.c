@@ -7,6 +7,7 @@
 #include "mouse_input.h"
 #include "keycode_convert.h"
 #include "syscalls/syscalls.h"
+#include "graph_backend.h"
 
 extern void free(void*ptr);
 
@@ -23,13 +24,7 @@ void destroy_draw_ctx(draw_ctx *ctx){
 }
 
 void commit_draw_ctx(draw_ctx *ctx){
-    // glRasterPos2i(0,ctx->height-1);
-    // glPixelZoom(1,-1);
-    // glDrawPixels(ctx->width,
-    //  	 ctx->height,
-    //      GL_BGRA,
-    //  	 GL_UNSIGNED_INT_8_8_8_8_REV,
-    //  	 ctx->fb);
+    graph_render(ctx);
     glfwSwapBuffers(_window);
     glfwPollEvents();
 }
@@ -41,10 +36,7 @@ void resize_draw_ctx(draw_ctx *ctx, uint32_t width, uint32_t height){
     ctx->fb = zalloc(width*height*sizeof(color));
     ctx->stride = 4 * width;
     glfwSetWindowSize(_window, width, height);
-    // glViewport( 0, 0, width, height );
-    // glMatrixMode(GL_PROJECTION);
-    // glLoadIdentity();
-    // glOrtho(0, width, 0, height, -1, 1);
+    graph_resize_viewport(ctx, width, height);
 }
 
 static void error_callback(int error, const char* description)
@@ -113,15 +105,13 @@ void request_draw_ctx(draw_ctx *ctx){
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
 #endif
     _window = glfwCreateWindow(w, h, "redlib", NULL, NULL);
-    glfwMakeContextCurrent(_window);
+    glfwMakeContextCurrent(_window);//TODO: This belongs in the graphics, but still needs to be separate
 
     ctx->width = w;
     ctx->height = h;
     
-    // glViewport( 0, 0, w, h );
-    // glMatrixMode( GL_PROJECTION );
-    // glLoadIdentity();
-    // glOrtho( 0, w, 0, h, -1, 1 );
+    graph_make_viewport(w, h);
+
     glfwSetKeyCallback(_window, key_callback);
     glfwSetCursorPosCallback(_window, cursor_position_callback);
     glfwSetScrollCallback(_window, scroll_callback);

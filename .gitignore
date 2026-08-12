@@ -2,3 +2,5 @@
 .cache/clangd/index/
 compile_commands.json
 diylib.a
+examples/example
+examples/.cache/*
