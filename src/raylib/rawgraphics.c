@@ -16,10 +16,6 @@ extern void free(void*ptr);
 
 Texture2D _screen_tex;
 
-void begin_drawing(draw_ctx *ctx){
-
-}
-
 void destroy_draw_ctx(draw_ctx *ctx){
     CloseWindow();
 }

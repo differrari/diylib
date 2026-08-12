@@ -15,10 +15,6 @@ extern void free(void*ptr);
 
 GLFWwindow* _window;
 
-void begin_drawing(draw_ctx *ctx){
-    
-}
-
 void destroy_draw_ctx(draw_ctx *ctx){
     glfwTerminate();
 }
@@ -84,10 +80,6 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     scroll = yoffset;
-}
-
-void* window_make_ctx(){
-    glfwMakeContextCurrent(_window);
 }
 
 void request_draw_ctx(draw_ctx *ctx){

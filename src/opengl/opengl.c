@@ -4,11 +4,6 @@
 #include <GL/gl.h>
 #endif
 #include "graph_backend.h"
-#include "win_backend.h"
-
-void graph_init(){
-    window_make_ctx();
-}
 
 void graph_render(draw_ctx *ctx){
     glRasterPos2i(0,ctx->height-1);

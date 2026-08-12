@@ -3,8 +3,8 @@ include ./common.mk
 WINDOW_BACKEND := raylib
 GRAPH_BACKEND := opengl
 
-# PLATFORM_INCLUDES := -I./vendored/glfw/include/GLFW
-PLATFORM_INCLUDES := -I./vendored/raylib/src
+PLATFORM_INCLUDES := -I./vendored/glfw/include/GLFW
+# PLATFORM_INCLUDES := -I./vendored/raylib/src
 
 LINKS := ./vendored/redlib/clibshared.a
 INCLUDES := $(PLATFORM_INCLUDES) -I./vendored/redlib -I./vendored/three2d -I./src/common
