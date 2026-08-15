@@ -8,7 +8,6 @@
 #include "syscalls/syscalls.h"
 
 #define vkcheck(cond,name) do { VkResult res = (cond); if (res != VK_SUCCESS){ print("Failed " name " with error %i",res); return; } } while (0);
-#define vkdebug(cond,name) if (gvk_debug){ vkcheck(cond,name); }
 
 extern const char** window_make_vk_extensions(uint32_t *amount);
 
@@ -114,7 +113,8 @@ VkResult gvk_filter_extensions(){//TODO: filter all extensions with the ones exi
     return VK_SUCCESS;
 }
 
-int graphQueue = -1;
+int graphQueueIndex = -1;
+int presentQueueIndex = -1;
 VkResult gvk_find_queues(){
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(pDevice, &queueFamilyCount, 0);
@@ -124,12 +124,15 @@ VkResult gvk_find_queues(){
 
     for (int i = 0; i < queueFamilyCount; i++){
         if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT){
-            graphQueue = i;
+            graphQueueIndex = i;
+        }
+        if (queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT){
+            presentQueueIndex = i;
         }
     }
 
-    if (graphQueue < 0){
-        print("Did not select a valid gpu, should've made better checks, mb\n");
+    if (graphQueueIndex < 0 || presentQueueIndex < 0){
+        print("Did not select queues, should've made better checks, mb\n");
         return VK_ERROR_UNKNOWN;
     }
 
@@ -137,21 +140,22 @@ VkResult gvk_find_queues(){
 }
 
 VkDevice lDevice = {};
-VkQueue graphicsQueue = {};
-
-
+VkQueue graphQueue = {}, presentQueue = {};
 
 VkResult gvk_make_ldevice(){
+    float queuePriority = 1.0f;
     VkDeviceQueueCreateInfo queueCreateInfo[2] = {
         {
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = graphQueue,
+            .queueFamilyIndex = graphQueueIndex,
             .queueCount = 1,
+            .pQueuePriorities = &queuePriority,
         },
         {
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = graphQueue,//NOTE: assuming this is the same queue as the graph, it's the presentation queue
+            .queueFamilyIndex = presentQueueIndex,//NOTE: assuming this is the same queue as the graph, it's the presentation queue
             .queueCount = 1,
+            .pQueuePriorities = &queuePriority,
         }
     };
 
@@ -174,7 +178,8 @@ VkResult gvk_make_ldevice(){
     VkResult res = vkCreateDevice(pDevice, &deviceCreateInfo, 0, &lDevice);
     if (res != VK_SUCCESS) return res;
 
-    vkGetDeviceQueue(lDevice, graphQueue, 0, &graphicsQueue);
+    vkGetDeviceQueue(lDevice, graphQueueIndex, 0, &graphQueue);
+    vkGetDeviceQueue(lDevice, presentQueueIndex, 0, &presentQueue);
 
     return res;
 }
@@ -200,7 +205,7 @@ extern VkResult window_make_vk_surface(VkInstance instance, VkSurfaceKHR *surfac
 
 VkResult gvk_can_present(){
     VkBool32 presentSupport = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(pDevice, graphQueue, surface, &presentSupport);
+    vkGetPhysicalDeviceSurfaceSupportKHR(pDevice, graphQueueIndex, surface, &presentSupport);
 
     return presentSupport ? VK_SUCCESS : VK_ERROR_FEATURE_NOT_PRESENT;
 }
@@ -212,7 +217,8 @@ VkResult gvk_create_swapchain(){
     VkSwapchainCreateInfoKHR scCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
         .surface = surface,
-        .minImageCount = 2,
+        .minImageCount = 3,//TODO: this is based on capabilities
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         .imageFormat = VK_FORMAT_B8G8R8A8_SRGB,
         .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
         .imageExtent = surfaceExtent,
@@ -220,6 +226,9 @@ VkResult gvk_create_swapchain(){
         .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .presentMode = VK_PRESENT_MODE_FIFO_KHR,
+        .preTransform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+        .queueFamilyIndexCount = 2,
+        .pQueueFamilyIndices = (const u32[]){graphQueueIndex,presentQueueIndex}
     };
     
     return vkCreateSwapchainKHR(lDevice, &scCreateInfo, 0, &swapChain);
@@ -260,7 +269,7 @@ VkResult gvk_make_command_pool_buffer(){
     VkCommandPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-        .queueFamilyIndex = graphQueue,
+        .queueFamilyIndex = graphQueueIndex,
     };
     VkResult res = vkCreateCommandPool(lDevice, &poolInfo, 0, &commandPool);
     if (res != VK_SUCCESS) return res;
@@ -281,6 +290,9 @@ VkResult gvk_make_command_pool_buffer(){
     return VK_SUCCESS;
 }
 
+VkPipelineLayout pipelineLayout = {};
+VkPipeline pipeline = {};
+VkRenderPass renderPass = {};
 VkFramebuffer framebuffers[8];//TODO: allocate
 
 VkResult gvk_make_framebuffers(){
@@ -293,6 +305,7 @@ VkResult gvk_make_framebuffers(){
             .width = surfaceExtent.width,
             .height = surfaceExtent.height,
             .layers = 1,
+            .renderPass = renderPass,
         };
     
         VkResult res = vkCreateFramebuffer(lDevice, &fbci, 0, &framebuffers[i]);
@@ -304,20 +317,17 @@ VkResult gvk_make_framebuffers(){
 
 void graph_make_viewport(u32 w, u32 h){
     vkcheck(window_make_vk_surface(instance, &surface), "creating surface");
+    surfaceExtent = (VkExtent2D){ w, h};
     vkcheck(gvk_can_present(), "no presentation support");
     vkcheck(gvk_create_swapchain(), "creating swapchain");
     vkcheck(gvk_make_swapchain_imageviews(), "making swapchain images");
     vkcheck(gvk_make_command_pool_buffer(), "command pool");
-    vkcheck(gvk_make_framebuffers(), "making framebuffers");
-    surfaceExtent = (VkExtent2D){ w, h};
-    print("Surface created with framebuffers and command queue");
     graph_make_pipeline();//TODO: the functions called inside here should be a default CPU-render fallback, the true function should be configurable through the t2d pipeline
+    vkcheck(gvk_make_framebuffers(), "making framebuffers");
+    print("Surface created with framebuffers and command queue");
 }
 
 #include "embedded_shaders.h"
-VkPipelineLayout pipelineLayout = {};
-VkPipeline pipeline = {};
-VkRenderPass renderPass = {};
 
 VkResult gvk_make_renderpass(){
     VkShaderModule vertShaderModule = {}, fragShaderModule = {};
@@ -398,7 +408,8 @@ VkResult gvk_make_renderpass(){
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable = VK_FALSE,
         .rasterizerDiscardEnable = VK_FALSE,
-        .polygonMode = VK_POLYGON_MODE_FILL
+        .polygonMode = VK_POLYGON_MODE_FILL,
+        .lineWidth = 1
     };
 
     VkPipelineLayoutCreateInfo plci = {
@@ -445,6 +456,28 @@ VkResult gvk_make_renderpass(){
     res = vkCreateRenderPass(lDevice, &renderPassInfo, 0, &renderPass);
     if (res != VK_SUCCESS) return res;
 
+    VkPipelineMultisampleStateCreateInfo ms = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .sampleShadingEnable = VK_FALSE,
+        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
+    };
+
+    VkPipelineColorBlendAttachmentState cbAttach = {
+        .colorWriteMask = 
+                                    VK_COLOR_COMPONENT_R_BIT | 
+                                    VK_COLOR_COMPONENT_G_BIT |
+                                    VK_COLOR_COMPONENT_B_BIT | 
+                                    VK_COLOR_COMPONENT_A_BIT,
+        .blendEnable = VK_FALSE
+    };
+    
+    VkPipelineColorBlendStateCreateInfo cb = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .logicOpEnable = VK_FALSE,
+        .attachmentCount = 1,
+        .pAttachments = &cbAttach,
+    };
+
     VkGraphicsPipelineCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .stageCount = 2,
@@ -453,8 +486,8 @@ VkResult gvk_make_renderpass(){
         .pInputAssemblyState = &inputAssembly,
         .pViewportState = &viewportState,
         .pRasterizationState = &rasterizer,
-        .pMultisampleState = 0,
-        .pColorBlendState = 0,
+        .pMultisampleState = &ms,
+        .pColorBlendState = &cb,
         .layout = pipelineLayout,
         .renderPass = renderPass,
         // .subpass = 0,
@@ -470,9 +503,34 @@ VkResult gvk_make_renderpass(){
     return res;
 }
 
+VkSemaphore imageAvailableSemaphore;
+VkSemaphore renderFinishedSemaphore;
+VkFence inFlightFence;
+
+VkResult gvk_create_sync_objects(){
+    VkSemaphoreCreateInfo semaphoreInfo = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
+
+    VkResult res = vkCreateSemaphore(lDevice, &semaphoreInfo, 0, &imageAvailableSemaphore);
+    if (res != VK_SUCCESS) return res;
+
+    res = vkCreateSemaphore(lDevice, &semaphoreInfo, 0, &renderFinishedSemaphore);
+    if (res != VK_SUCCESS) return res;
+
+    VkFenceCreateInfo fenceInfo = { 
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT
+    };
+
+    return vkCreateFence(lDevice, &fenceInfo, 0, &inFlightFence);
+    //TODO: most of this code needs cleanup
+}
+
 //TODO: expose this 
 void graph_make_pipeline(){
     vkcheck(gvk_make_renderpass(), "making render pass");
+    vkcheck(gvk_create_sync_objects(), "making sync objects");
     print("Pipeline setup done");
 }
 
@@ -490,8 +548,14 @@ VkResult gvk_record_command_buffer(VkCommandBuffer buffer, u32 imageIndex){
     return vkBeginCommandBuffer(buffer, &beginInfo);
 }
 
-void gvk_begin_render_pass(VkCommandBuffer buffer, u32 imageIndex){
-    VkClearValue clearColor = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+VkResult gvk_begin_render_pass(VkCommandBuffer buffer, u32 imageIndex){
+    VkResult res = vkResetCommandBuffer(buffer, 0);
+    if (res != VK_SUCCESS) return res;
+
+    res = gvk_record_command_buffer(buffer,imageIndex);
+    if (res != VK_SUCCESS) return res;
+
+    VkClearValue clearColor = {{{0.5f, 0.0f, 0.0f, 1.0f}}};
     VkRenderPassBeginInfo renderPassInfo = {
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .renderPass = renderPass,
@@ -502,9 +566,51 @@ void gvk_begin_render_pass(VkCommandBuffer buffer, u32 imageIndex){
         .pClearValues = &clearColor,
     };
     vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+    vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+    vkCmdDraw(buffer, 3, 1, 0, 0);
+
+    vkCmdEndRenderPass(buffer);
+
+    return vkEndCommandBuffer(buffer);
+}
+
+VkResult gvk_submit_command(VkCommandBuffer buffer, u32 imageIndex){
+    
+    VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    VkSubmitInfo submitInfo = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &imageAvailableSemaphore,
+        .pWaitDstStageMask = waitStages,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &buffer,
+        .pSignalSemaphores = &renderFinishedSemaphore,
+        .signalSemaphoreCount = 1,
+    };
+
+    return vkQueueSubmit(graphQueue, 1, &submitInfo, inFlightFence);
+}
+
+VkResult gvk_present(u32 imageIndex){
+    VkPresentInfoKHR present = {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &renderFinishedSemaphore,
+        .swapchainCount = 1,
+        .pSwapchains = &swapChain,
+        .pImageIndices = &imageIndex,
+    };
+    return vkQueuePresentKHR(presentQueue, &present); 
 }
 
 void graph_render(draw_ctx *ctx){
-
-    // print("TODO: render loop here");
+    vkWaitForFences(lDevice, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
+    vkResetFences(lDevice, 1, &inFlightFence);
+    u32 imageIndex;
+    vkAcquireNextImageKHR(lDevice, swapChain, UINT64_MAX, imageAvailableSemaphore, VK_NULL_HANDLE, &imageIndex);
+    vkcheck(gvk_begin_render_pass(commandBuffers[imageIndex], imageIndex), "executing command buffer");
+    vkcheck(gvk_submit_command(commandBuffers[imageIndex], imageIndex), "submitting command");
+    vkcheck(gvk_present(imageIndex),"presenting");
 }

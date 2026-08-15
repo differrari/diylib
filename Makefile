@@ -54,6 +54,7 @@ prepare:
 	@echo $(C_SRC) 
 	mkdir -p $(BUILD_DIR)
 	./gen_wayland
+	./gen_shaders
 
 $(TARGET): $(OBJ)
 	@echo "Finishing build $(ARCH)"

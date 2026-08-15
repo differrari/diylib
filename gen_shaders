@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-SHADER="./src/vulkan/"
+SHADER="./src/vulkan"
 BUILD_DIR=".build/shaders"
 
 mkdir -p "$BUILD_DIR"

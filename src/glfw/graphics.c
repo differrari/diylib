@@ -3,7 +3,6 @@
 #include "alloc/allocate.h"
 #include "keyboard_input.h"
 #include "mouse_input.h"
-#include "keycode_convert.h"
 #include "win_backend.h"
 #include "graph_backend.h"
 
@@ -42,16 +41,21 @@ void request_draw_ctx(draw_ctx *ctx){
     ctx->height = h;
     
     graph_make_viewport(w, h);
-
+    win_prepare_input();
 }
 
-bool read_event(kbd_event *out){
-    // if (kbd_event_read == kbd_event_write) return false;
+#define INPUT_BUFFER_CAPACITY 64
 
-    // *out = event_queue[kbd_event_read];
-    // kbd_event_read = (kbd_event_read + 1) % INPUT_BUFFER_CAPACITY;
+extern kbd_event event_queue[];
+extern int kbd_event_read;
+extern int kbd_event_write;
+bool read_event(kbd_event *out){
+    if (kbd_event_read == kbd_event_write) return false;
+
+    *out = event_queue[kbd_event_read];
+    kbd_event_read = (kbd_event_read + 1) % INPUT_BUFFER_CAPACITY;
     
-    // return true;
+    return true;
 }
 
 void get_mouse_status(mouse_data *in){
