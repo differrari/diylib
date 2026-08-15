@@ -12,9 +12,8 @@ void destroy_draw_ctx(draw_ctx *ctx){
 }
 
 void commit_draw_ctx(draw_ctx *ctx){
-    // graph_render(ctx);
-    // glfwSwapBuffers(_window);
-    // glfwPollEvents();
+    graph_render(ctx);
+    win_render();
 }
 
 void resize_draw_ctx(draw_ctx *ctx, uint32_t width, uint32_t height){
@@ -27,16 +26,12 @@ void resize_draw_ctx(draw_ctx *ctx, uint32_t width, uint32_t height){
     // graph_resize_viewport(ctx, width, height);
 }
 
-// extern void graph_test();
-
-extern void* malloc(size_t size);
-
 void request_draw_ctx(draw_ctx *ctx){
     uint32_t w = ctx->width ? ctx->width : 600;
     uint32_t h = ctx->height ? ctx->height : 300;
     win_make();
 
-    ctx->fb = malloc(w*h*sizeof(color));//TODO: This has to be malloc due to some weird glfw/gtk mem corruption happening
+    ctx->fb = zalloc(w*h*sizeof(color));
     ctx->width = w;
     ctx->height = h;
     ctx->stride = sizeof(color) * w;    
@@ -71,9 +66,4 @@ void get_mouse_status(mouse_data *in){
     // in->position.y = y_pos;
     // old_x = x_pos;
     // old_y = y_pos;
-}
-
-bool should_close_ctx(){
-    return false;
-    // return glfwWindowShouldClose(_window);
 }

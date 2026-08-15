@@ -6,3 +6,11 @@ extern GLFWwindow* _window;
 void graph_init(){
     glfwMakeContextCurrent(_window);
 }
+
+void graph_setup(){
+
+}
+
+void win_swap(){
+    glfwSwapBuffers(_window);
+}

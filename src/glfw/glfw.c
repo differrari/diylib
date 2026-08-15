@@ -2,6 +2,7 @@
 #include "glfw3.h"
 #include "graph_backend.h"
 #include "syscalls/syscalls.h"
+#include "win_backend.h"
 
 GLFWwindow *_window = {};
 
@@ -16,8 +17,8 @@ void win_make(){
     glfwSetErrorCallback(error_callback);
 #if __linux__
     // glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
-    // glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
-    // glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_TRUE);
+    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+    glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_TRUE);
     #endif
     glfwInit();
     
@@ -34,6 +35,11 @@ void win_prepare_input(){
     // glfwSetKeyCallback(_window, key_callback);
     // glfwSetCursorPosCallback(_window, cursor_position_callback);
     // glfwSetScrollCallback(_window, scroll_callback);
+}
+
+void win_render(){
+    win_swap();
+    glfwPollEvents();
 }
 
 // #define INPUT_BUFFER_CAPACITY 64
@@ -76,4 +82,8 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     scroll = yoffset;
+}
+
+bool should_close_ctx(){
+    return glfwWindowShouldClose(_window);
 }

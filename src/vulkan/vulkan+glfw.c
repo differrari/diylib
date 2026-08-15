@@ -21,3 +21,7 @@ const char** window_make_vk_extensions(uint32_t *amount){
 VkResult window_make_vk_surface(VkInstance instance, VkSurfaceKHR *surface){
     return glfwCreateWindowSurface(instance, _window, NULL, surface);
 }
+
+void win_swap(){
+    
+}

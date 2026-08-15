@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+SHADER="./src/vulkan/"
+BUILD_DIR=".build/shaders"
+
+mkdir -p "$BUILD_DIR"
+
+glslc "$SHADER/embedded.frag" -o "$BUILD_DIR/em_frag.spv"
+glslc "$SHADER/embedded.vert" -o "$BUILD_DIR/em_vert.spv"
+
+xxd -i "$BUILD_DIR/em_frag.spv" > "$SHADER/embedded_shaders.h"
+xxd -i "$BUILD_DIR/em_vert.spv" >> "$SHADER/embedded_shaders.h"
