@@ -776,36 +776,35 @@ VkSampler fbSampler = {};
 
 VkDescriptorSet fbDescriptorSet = {};
 
-VkResult gvk_make_fb_image(u32 w, u32 h, u32 *pixels){
-    VkDeviceSize imageSize = w * h * sizeof(u32);
-    VkBuffer stagingBuffer = {};
-    VkDeviceMemory stagingBufferMemory = {};
-    VkResult res = gvk_create_buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer, &stagingBufferMemory);
+VkResult gvk_update_image(VkImage image, u32 w, u32 h, VkBuffer stagingBuffer, VkDeviceMemory stagingBufferMemory){
+    VkResult res = gvk_transition_image_layout(image, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
     if (res != VK_SUCCESS) return res;
 
-    void* data = 0;
-    res = vkMapMemory(lDevice, stagingBufferMemory, 0, imageSize, 0, &data);
+    gvk_copy_buffer_image(stagingBuffer, image, w, h);
+    res = gvk_transition_image_layout(image, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
     if (res != VK_SUCCESS) return res;
-    
-    memset32(data, 0xFFb4dd13, imageSize);
-    vkUnmapMemory(lDevice, stagingBufferMemory);
-    //TODO: first comment here https://vulkan-tutorial.com/Texture_mapping/Images
+    return res;
+}
+
+void* fbDataBuffer = 0;
+VkBuffer fbStagingBuffer = {};
+VkDeviceMemory fbStagingBufferMemory = {};
+
+VkResult gvk_make_fb_image(u32 w, u32 h, u32 *pixels){
+    VkDeviceSize imageSize = w * h * sizeof(u32);
+    VkResult res = gvk_create_buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &fbStagingBuffer, &fbStagingBufferMemory);
+    if (res != VK_SUCCESS) return res;
+
+    res = vkMapMemory(lDevice, fbStagingBufferMemory, 0, imageSize, 0, &fbDataBuffer);
+    if (res != VK_SUCCESS) return res;
     
     res = gvk_make_image(w, h, &fbImage, &fbImageBuffer, &fbImageMemory);
     if (res != VK_SUCCESS) return res;
     
-    res = gvk_transition_image_layout(fbImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    if (res != VK_SUCCESS) return res;
-
-    gvk_copy_buffer_image(stagingBuffer, fbImage, w, h);
-    res = gvk_transition_image_layout(fbImage, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    if (res != VK_SUCCESS) return res;
+    gvk_update_image(fbImage, w, h, fbStagingBuffer, fbStagingBufferMemory);
 
     res = gvk_createImageView(fbImage, &fbImageView, VK_FORMAT_B8G8R8A8_SRGB);
     if (res != VK_SUCCESS) return res;
-
-    vkDestroyBuffer(lDevice, stagingBuffer, 0);
-    vkFreeMemory(lDevice, stagingBufferMemory, 0);
 
     res = gvk_make_image_sampler(&fbSampler);
     if (res != VK_SUCCESS) return res;
@@ -922,6 +921,8 @@ VkResult gvk_present(u32 imageIndex){
 }
 
 void graph_render(draw_ctx *ctx){
+    memcpy(fbDataBuffer, ctx->fb, ctx->width * ctx->height * sizeof(u32));
+    gvk_update_image(fbImage, ctx->width, ctx->height, fbStagingBuffer, fbStagingBufferMemory);
     vkWaitForFences(lDevice, 1, &inFlightFence, VK_TRUE, UINT64_MAX);
     vkResetFences(lDevice, 1, &inFlightFence);
     u32 imageIndex;
