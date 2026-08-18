@@ -61,7 +61,7 @@ $(TARGET): $(OBJ)
 	echo $(addprefix $(BUILD_DIR)/,$(notdir $(OBJ)))
 	$(VAR) rcs $@ $(OBJ)
 
-$(BUILD_DIR)/%.o: %.c
+$(BUILD_DIR)/%.o: %.c prepare
 	@mkdir -p $(dir $@)
 	$(VCC) $(CFLAGS) -std=gnu99 $(INCLUDES) -DCROSS -c $< -o $@
 

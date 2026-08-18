@@ -1,10 +1,13 @@
 #include "keyboard_input.h"
 #include "string/slice.h"
+#include "string/string.h"
 #include "syscalls/syscalls.h"
 #include "draw/draw.h"
 #include "input_keycodes.h"
+#include <stddef.h>
 
 
+char buf[256] = {};
 int main(){
 
     draw_ctx ctx = {};
@@ -13,10 +16,13 @@ int main(){
 
     request_draw_ctx(&ctx);
 
+    int counter = 0;
+
     while (!should_close_ctx(&ctx)){
         fb_clear(&ctx, 0xffb4dd13);
-
-        fb_draw_slice(&ctx, SLICE("Hello, World."), 20, 20, 3, 0xFF000000);
+        
+        size_t n = string_format_buf(buf, 56, "Hello world %i", counter++);
+        fb_draw_slice(&ctx, (string_slice){buf,n}, 20, 20, 3, 0xFF000000);
 
         kbd_event ev = {};
         if (read_event(&ev) && ev.key == KEY_ESC) halt(0);
