@@ -14,7 +14,7 @@ static void error_callback(int error, const char* description)
     halt(-1);
 }
 
-void win_make(){
+void win_make(u32 w, u32 h){
     glfwSetErrorCallback(error_callback);
 #if __linux__
     // glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
@@ -29,7 +29,7 @@ void win_make(){
     glfwWindowHint(GLFW_MAXIMIZED, GLFW_FALSE);
 #endif
     graph_setup();
-    _window = glfwCreateWindow(1920, 1080, "vulkantest", 0, 0);
+    _window = glfwCreateWindow(w, h, "vulkantest", 0, 0);
 }
 
 void win_render(){
@@ -63,7 +63,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
         kbd_event_read = (kbd_event_read + 1) % INPUT_BUFFER_CAPACITY;
 }
 
-double x_pos, y_pos;
+double x_pos, y_pos, old_x, old_y;
 static double scroll;
 
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
@@ -75,6 +75,20 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
     scroll = yoffset;
+}
+
+void get_mouse_status(mouse_data *in){
+    in->raw.scroll = (u8)scroll;
+    scroll = 0;
+    in->raw.buttons = 0;
+    for (int i = 0; i < 3; i++)
+        in->raw.buttons |= (glfwGetMouseButton(_window, i) & 1) << i;
+    in->raw.x = x_pos - old_x;
+    in->raw.y = y_pos - old_y;
+    in->position.x = x_pos;
+    in->position.y = y_pos;
+    old_x = x_pos;
+    old_y = y_pos;
 }
 
 bool should_close_ctx(){
