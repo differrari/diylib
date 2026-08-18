@@ -9,6 +9,7 @@
 #include "memory/memory.h"
 
 #define vkcheck(cond,name) do { VkResult res = (cond); if (res != VK_SUCCESS){ print("Failed " name " with error %i",res); return; } } while (0);
+#define vkcheckr(cond,name) do { VkResult res = (cond); if (res != VK_SUCCESS){ print("Failed " name " with error %i",res); return res; } } while (0);
 
 extern const char** window_make_vk_extensions(u32 *amount);
 
@@ -176,13 +177,12 @@ VkResult gvk_make_ldevice(){
         .ppEnabledExtensionNames = &hardcoded_ext,
     };
 
-    VkResult res = vkCreateDevice(pDevice, &deviceCreateInfo, 0, &lDevice);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateDevice(pDevice, &deviceCreateInfo, 0, &lDevice),"making logical device");
 
     vkGetDeviceQueue(lDevice, graphQueueIndex, 0, &graphQueue);
     vkGetDeviceQueue(lDevice, presentQueueIndex, 0, &presentQueue);
 
-    return res;
+    return VK_SUCCESS;
 }
 
 void graph_init(){
@@ -276,8 +276,7 @@ VkResult gvk_make_command_pool_buffer(){
         .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = graphQueueIndex,
     };
-    VkResult res = vkCreateCommandPool(lDevice, &poolInfo, 0, &commandPool);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateCommandPool(lDevice, &poolInfo, 0, &commandPool),"creating command pool");
     
     for (u32 i = 0; i < imageCount; i++){
         VkCommandBufferAllocateInfo allocInfo = {
@@ -287,9 +286,7 @@ VkResult gvk_make_command_pool_buffer(){
             .commandBufferCount = 1,
         };
         
-        VkResult res = vkAllocateCommandBuffers(lDevice, &allocInfo, &commandBuffers[i]);
-        if (res != VK_SUCCESS) return res;
-
+        vkcheckr(vkAllocateCommandBuffers(lDevice, &allocInfo, &commandBuffers[i]),"allocating command buffers");
     }
 
     return VK_SUCCESS;
@@ -313,8 +310,7 @@ VkResult gvk_make_framebuffers(){
             .renderPass = renderPass,
         };
     
-        VkResult res = vkCreateFramebuffer(lDevice, &fbci, 0, &framebuffers[i]);
-        if (res != VK_SUCCESS) return res;
+        vkcheckr(vkCreateFramebuffer(lDevice, &fbci, 0, &framebuffers[i]),"creating framebuffer");
     }
 
     return VK_SUCCESS;
@@ -344,8 +340,7 @@ VkResult gvk_make_renderpass(){
         .pCode = (u32*)_build_shaders_em_vert_spv,
     };
 
-    VkResult res = vkCreateShaderModule(lDevice, &vsh, 0, &vertShaderModule);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateShaderModule(lDevice, &vsh, 0, &vertShaderModule),"making vertex shader module");
 
     VkShaderModuleCreateInfo fsh = {
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -353,7 +348,7 @@ VkResult gvk_make_renderpass(){
         .pCode = (u32*)_build_shaders_em_frag_spv,
     };
 
-    res = vkCreateShaderModule(lDevice, &fsh, 0, &fragShaderModule);
+    VkResult res = vkCreateShaderModule(lDevice, &fsh, 0, &fragShaderModule);
     if (res != VK_SUCCESS){
         vkDestroyShaderModule(lDevice, vertShaderModule, 0);
         return res;
@@ -449,8 +444,7 @@ VkResult gvk_make_renderpass(){
         .pSubpasses = &subpass,
     };
 
-    res = vkCreateRenderPass(lDevice, &renderPassInfo, 0, &renderPass);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateRenderPass(lDevice, &renderPassInfo, 0, &renderPass),"making render pass");
 
     VkPipelineMultisampleStateCreateInfo ms = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -490,8 +484,7 @@ VkResult gvk_make_renderpass(){
         .pBindings = bindings,
     };
 
-    res = vkCreateDescriptorSetLayout(lDevice, &dslci, 0, &descriptorSetLayout);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateDescriptorSetLayout(lDevice, &dslci, 0, &descriptorSetLayout), "making descriptor set layout");
     
     VkPipelineLayoutCreateInfo plci = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -501,8 +494,7 @@ VkResult gvk_make_renderpass(){
         .pPushConstantRanges = 0,
     };
     
-    res = vkCreatePipelineLayout(lDevice, &plci, 0, &pipelineLayout);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreatePipelineLayout(lDevice, &plci, 0, &pipelineLayout),"making pipeline layout");
 
     VkGraphicsPipelineCreateInfo createInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -521,12 +513,12 @@ VkResult gvk_make_renderpass(){
         // .basePipelineIndex = -1,
     };
 
-    res = vkCreateGraphicsPipelines(lDevice, 0, 1, &createInfo, 0, &pipeline);
+    vkcheckr(vkCreateGraphicsPipelines(lDevice, 0, 1, &createInfo, 0, &pipeline),"making pipeline");
 
     vkDestroyShaderModule(lDevice, fragShaderModule, 0);
     vkDestroyShaderModule(lDevice, vertShaderModule, 0);
 
-    return res;
+    return VK_SUCCESS;
 }
 
 VkSemaphore imageAvailableSemaphore;
@@ -538,11 +530,9 @@ VkResult gvk_create_sync_objects(){
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
 
-    VkResult res = vkCreateSemaphore(lDevice, &semaphoreInfo, 0, &imageAvailableSemaphore);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateSemaphore(lDevice, &semaphoreInfo, 0, &imageAvailableSemaphore),"making semaphore");
 
-    res = vkCreateSemaphore(lDevice, &semaphoreInfo, 0, &renderFinishedSemaphore);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateSemaphore(lDevice, &semaphoreInfo, 0, &renderFinishedSemaphore),"making semaphore");
 
     VkFenceCreateInfo fenceInfo = { 
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -572,8 +562,7 @@ VkResult gvk_create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemory
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    VkResult res = vkCreateBuffer(lDevice, &bufferInfo, 0, buffer);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateBuffer(lDevice, &bufferInfo, 0, buffer),"creating buffer");
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements(lDevice, *buffer, &memRequirements);
@@ -588,8 +577,7 @@ VkResult gvk_create_buffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemory
         .memoryTypeIndex = mem_type,
     };
 
-    res = vkAllocateMemory(lDevice, &allocInfo, 0, bufferMemory);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkAllocateMemory(lDevice, &allocInfo, 0, bufferMemory),"allocating memory for buffer");
 
     return vkBindBufferMemory(lDevice, *buffer, *bufferMemory, 0);
 }
@@ -611,8 +599,7 @@ VkResult gvk_make_image(u32 w, u32 h, VkImage *image, VkBuffer *buffer, VkDevice
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
     };
 
-    VkResult res = vkCreateImage(lDevice, &imageInfo, 0, image);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkCreateImage(lDevice, &imageInfo, 0, image),"creating image");
 
     VkMemoryRequirements memRequirements;
     vkGetImageMemoryRequirements(lDevice, *image, &memRequirements);
@@ -623,8 +610,7 @@ VkResult gvk_make_image(u32 w, u32 h, VkImage *image, VkBuffer *buffer, VkDevice
         .memoryTypeIndex = gvk_find_memory(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
     };
 
-    res = vkAllocateMemory(lDevice, &allocInfo, 0, memory);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkAllocateMemory(lDevice, &allocInfo, 0, memory),"allocating memory for image");
 
     vkBindImageMemory(lDevice, *image, *memory, 0);
 
@@ -777,13 +763,11 @@ VkSampler fbSampler = {};
 VkDescriptorSet fbDescriptorSet = {};
 
 VkResult gvk_update_image(VkImage image, u32 w, u32 h, VkBuffer stagingBuffer, VkDeviceMemory stagingBufferMemory){
-    VkResult res = gvk_transition_image_layout(image, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(gvk_transition_image_layout(image, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL),"transitioning image");
 
     gvk_copy_buffer_image(stagingBuffer, image, w, h);
-    res = gvk_transition_image_layout(image, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-    if (res != VK_SUCCESS) return res;
-    return res;
+    vkcheckr(gvk_transition_image_layout(image, VK_FORMAT_B8G8R8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL),"transitioning image");
+    return VK_SUCCESS;
 }
 
 void* fbDataBuffer = 0;
@@ -792,22 +776,17 @@ VkDeviceMemory fbStagingBufferMemory = {};
 
 VkResult gvk_make_fb_image(u32 w, u32 h, u32 *pixels){
     VkDeviceSize imageSize = w * h * sizeof(u32);
-    VkResult res = gvk_create_buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &fbStagingBuffer, &fbStagingBufferMemory);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(gvk_create_buffer(imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &fbStagingBuffer, &fbStagingBufferMemory),"creating buffer");
 
-    res = vkMapMemory(lDevice, fbStagingBufferMemory, 0, imageSize, 0, &fbDataBuffer);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkMapMemory(lDevice, fbStagingBufferMemory, 0, imageSize, 0, &fbDataBuffer),"mapping memory");
     
-    res = gvk_make_image(w, h, &fbImage, &fbImageBuffer, &fbImageMemory);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(gvk_make_image(w, h, &fbImage, &fbImageBuffer, &fbImageMemory),"making image");
     
     gvk_update_image(fbImage, w, h, fbStagingBuffer, fbStagingBufferMemory);
 
-    res = gvk_createImageView(fbImage, &fbImageView, VK_FORMAT_B8G8R8A8_SRGB);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(gvk_createImageView(fbImage, &fbImageView, VK_FORMAT_B8G8R8A8_SRGB),"making imageview");
 
-    res = gvk_make_image_sampler(&fbSampler);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(gvk_make_image_sampler(&fbSampler),"making sampler");
 
     VkDescriptorSetAllocateInfo dsai = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -816,8 +795,7 @@ VkResult gvk_make_fb_image(u32 w, u32 h, u32 *pixels){
         .pSetLayouts = &descriptorSetLayout
     };
     
-    res = vkAllocateDescriptorSets(lDevice, &dsai, &fbDescriptorSet);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkAllocateDescriptorSets(lDevice, &dsai, &fbDescriptorSet),"allocating descriptor sets");
 
     VkDescriptorImageInfo imageInfo = {
         .sampler = fbSampler,
@@ -862,11 +840,9 @@ VkResult gvk_record_command_buffer(VkCommandBuffer buffer, u32 imageIndex){
 }
 
 VkResult gvk_begin_render_pass(VkCommandBuffer buffer, u32 imageIndex){
-    VkResult res = vkResetCommandBuffer(buffer, 0);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(vkResetCommandBuffer(buffer, 0),"resetting buffer");
 
-    res = gvk_record_command_buffer(buffer,imageIndex);
-    if (res != VK_SUCCESS) return res;
+    vkcheckr(gvk_record_command_buffer(buffer,imageIndex),"recording command buffer");
 
     VkClearValue clearColor = {{{0.5f, 0.0f, 0.0f, 1.0f}}};
     VkRenderPassBeginInfo renderPassInfo = {
