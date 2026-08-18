@@ -15,7 +15,7 @@ void graph_render(draw_ctx *ctx){
      	 ctx->fb);
 }
 
-void graph_make_viewport(u32 w, u32 h){
+void graph_make_viewport(u32 w, u32 h, u32 *fb){
     glViewport( 0, 0, w, h );
     glMatrixMode( GL_PROJECTION );
     glLoadIdentity();

@@ -8,7 +8,7 @@
 
 void graph_setup();//Before init
 void graph_init();
-void graph_make_viewport(u32 w, u32 h);
+void graph_make_viewport(u32 w, u32 h, u32 *fb);
 void graph_resize_viewport(draw_ctx *ctx, u32 w, u32 h);
 void graph_render(draw_ctx *ctx);
-void graph_make_pipeline();
+void graph_make_default_pipeline(u32 w, u32 h, u32 *fb);

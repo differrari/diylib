@@ -40,7 +40,7 @@ void request_draw_ctx(draw_ctx *ctx){
     ctx->width = w;
     ctx->height = h;
     
-    graph_make_viewport(w, h);
+    graph_make_viewport(w, h,ctx->fb);
     win_prepare_input();
 }
 
