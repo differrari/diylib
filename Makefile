@@ -1,7 +1,7 @@
 include ./common.mk
 
-WINDOW_BACKEND := glfw
-GRAPH_BACKEND := vulkan
+WINDOW_BACKEND ?= glfw
+GRAPH_BACKEND ?= opengl
 
 PLATFORM_INCLUDES := -I./vendored/glfw/include/GLFW
 # PLATFORM_INCLUDES := -I./vendored/raylib/src
