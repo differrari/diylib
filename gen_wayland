@@ -1,4 +1,9 @@
 #!/bin/bash
+
+if [ ! "$(uname)" = "Linux" ]; then
+    exit 0
+fi
+ 
 set -euo pipefail
 
 WAYLAND_DIR="./vendored/glfw/deps/wayland"
