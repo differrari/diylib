@@ -14,16 +14,6 @@ void commit_draw_ctx(draw_ctx *ctx){
     win_render();
 }
 
-void resize_draw_ctx(draw_ctx *ctx, uint32_t width, uint32_t height){
-    // release(ctx->fb);
-    // ctx->width = width;
-    // ctx->height = height;
-    // ctx->fb = zalloc(width*height*sizeof(color));
-    // ctx->stride = 4 * width;
-    // glfwSetWindowSize(_window, width, height);
-    // graph_resize_viewport(ctx, width, height);
-}
-
 void request_draw_ctx(draw_ctx *ctx){
     uint32_t w = ctx->width ? ctx->width : 600;
     uint32_t h = ctx->height ? ctx->height : 300;

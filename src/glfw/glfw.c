@@ -4,6 +4,7 @@
 #include "syscalls/syscalls.h"
 #include "win_backend.h"
 #include "keycode_convert.h"
+#include "environment/window_info.h"
 
 GLFWwindow *_window = {};
 
@@ -99,4 +100,32 @@ void win_prepare_input(){
     glfwSetKeyCallback(_window, key_callback);
     glfwSetCursorPosCallback(_window, cursor_position_callback);
     glfwSetScrollCallback(_window, scroll_callback);
+}
+
+void resize_draw_ctx(draw_ctx *ctx, uint32_t width, uint32_t height){
+    release(ctx->fb);
+    ctx->width = width;
+    ctx->height = height;
+    ctx->fb = zalloc(width*height*sizeof(color));
+    ctx->stride = 4 * width;
+    glfwSetWindowSize(_window, width, height);
+    graph_resize_viewport(ctx, width, height);
+}
+
+void env_set_window_info(window_info_t *info){
+    string s = string_from_literal_length(info->name, info->name_length);
+    glfwSetWindowTitle(_window, s.data);
+    string_free(s);
+}
+
+void clipboard_copy(void *buf, size_t size, data_signature type){
+    if (type != DATA_SIG_UNKNOWN && type != DATA_SIG_TEXT) return;
+    string s = string_from_literal_length(buf, size);
+    glfwSetClipboardString(_window, s.data);
+    string_free(s);
+}
+
+void* clipboard_paste(data_signature expected_sig, size_t *out_size){
+    if (expected_sig != DATA_SIG_UNKNOWN && expected_sig != DATA_SIG_TEXT) return 0;
+    return (void*)glfwGetClipboardString(_window);
 }
