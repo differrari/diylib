@@ -69,6 +69,11 @@ size_t swritef(const char* path, const void* buf, size_t size, bool append){
     if (append) fseek(fd, 0, SEEK_END);
     fwrite(buf, size, 1, fd);
     fclose(fd);
+    return size;
+}
+
+void syncf(file *descriptor, bool replace){
+    
 }
 
 buffer get_input_line(){
