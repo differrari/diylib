@@ -16,14 +16,14 @@ void graph_render(draw_ctx *ctx){
 }
 
 void graph_make_viewport(u32 w, u32 h, u32 *fb){
-    glViewport( 0, 0, w, h );
-    glMatrixMode( GL_PROJECTION );
+    glViewport(0, 0, w, h);
+    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho( 0, w, 0, h, -1, 1 );
+    glOrtho(0, w, 0, h, -1, 1);
 }
 
 void graph_resize_viewport(draw_ctx *ctx, u32 w, u32 h){
-    glViewport( 0, 0, w, h );
+    glViewport(0, 0, w, h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, w, 0, h, -1, 1);

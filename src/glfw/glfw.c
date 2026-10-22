@@ -15,11 +15,11 @@ static void error_callback(int error, const char* description)
     halt(-1);
 }
 
-void win_make(u32 w, u32 h){
+gpu_point win_make(u32 w, u32 h){
     glfwSetErrorCallback(error_callback);
 #if __linux__
     // glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
-    glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
+    // glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
     glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_TRUE);
     #endif
     glfwInit();
@@ -31,6 +31,9 @@ void win_make(u32 w, u32 h){
 #endif
     graph_setup();
     _window = glfwCreateWindow(w, h, "vulkantest", 0, 0);
+    gpu_point size = {};
+    glfwGetFramebufferSize(_window, &size.x, &size.y);
+    return size;
 }
 
 void win_render(){
@@ -67,10 +70,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 double x_pos, y_pos, old_x, old_y;
 static double scroll;
 
+float display_scale = 0;
+
 static void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
-    x_pos = xpos;
-    y_pos = ypos;
+    if (!display_scale) display_scale = 1;
+    x_pos = xpos * display_scale;
+    y_pos = ypos * display_scale;
 }
 
 static void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
@@ -104,12 +110,19 @@ void win_prepare_input(){
 
 void resize_draw_ctx(draw_ctx *ctx, uint32_t width, uint32_t height){
     release(ctx->fb);
-    ctx->width = width;
-    ctx->height = height;
-    ctx->fb = zalloc(width*height*sizeof(color));
-    ctx->stride = 4 * width;
+    if (!ctx->display_scale) ctx->display_scale = 1;
+    width /= ctx->display_scale;
+    height /= ctx->display_scale;
     glfwSetWindowSize(_window, width, height);
-    graph_resize_viewport(ctx, width, height);
+    int fbw, fbh;
+    glfwGetFramebufferSize(_window, &fbw, &fbh);
+    graph_resize_viewport(ctx, fbw, fbh);
+    ctx->width = fbw;
+    ctx->height = fbh;
+    ctx->fb = zalloc(fbw*fbh*sizeof(color));
+    ctx->stride = sizeof(color) * fbw;
+    ctx->display_scale = fbw/width;
+    display_scale = ctx->display_scale;
 }
 
 void env_set_window_info(window_info_t *info){

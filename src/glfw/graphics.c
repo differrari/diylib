@@ -14,22 +14,24 @@ void commit_draw_ctx(draw_ctx *ctx){
     win_render();
 }
 
-void request_draw_ctx(draw_ctx *ctx){
-    uint32_t w = ctx->width ? ctx->width : 600;
-    uint32_t h = ctx->height ? ctx->height : 300;
-    win_make(w,h);
+extern int print(const char *fmt, ...);
+extern float display_scale;
 
-    ctx->fb = zalloc(w*h*sizeof(color));
-    ctx->width = w;
-    ctx->height = h;
-    ctx->stride = sizeof(color) * w;    
+void request_draw_ctx(draw_ctx *ctx){
+    uint32_t w = ctx->width ?: 600;
+    uint32_t h = ctx->height ?: 300;
+    gpu_point size = win_make(w,h);
 
     graph_init();
 
-    ctx->width = w;
-    ctx->height = h;
-    
-    graph_make_viewport(w, h,ctx->fb);
+    ctx->fb = zalloc(size.x*size.y*sizeof(color));
+    ctx->width = size.x;
+    ctx->height = size.y;
+    ctx->stride = sizeof(color) * size.x;
+    ctx->display_scale = size.x/w;
+    display_scale = ctx->display_scale;
+        
+    graph_make_viewport(size.x, size.y,ctx->fb);
     win_prepare_input();
 }
 
