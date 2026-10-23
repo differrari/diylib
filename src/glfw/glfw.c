@@ -59,7 +59,7 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
     event_queue[kbd_event_write] = (kbd_event){
         .type = action == GLFW_PRESS || action == GLFW_REPEAT ? press_ev : release_ev,
         .key = is_mod ? 0 : key,
-        .modifier = is_mod ? key : 0
+        .modifier = is_mod ? 1 << key : 0
     };
     kbd_event_write = next_index;
 
