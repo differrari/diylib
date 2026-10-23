@@ -5,9 +5,9 @@
 #include "win_backend.h"
 #include "keycode_convert.h"
 #include "environment/window_info.h"
+#include "image/image.h"
 
 GLFWwindow *_window = {};
-
 
 static void error_callback(int error, const char* description)
 {
@@ -15,13 +15,15 @@ static void error_callback(int error, const char* description)
     halt(-1);
 }
 
+extern char* get_current_dir();
+
 gpu_point win_make(u32 w, u32 h){
     glfwSetErrorCallback(error_callback);
 #if __linux__
     // glfwInitHint(GLFW_WAYLAND_LIBDECOR, GLFW_WAYLAND_DISABLE_LIBDECOR);
     // glfwInitHint(GLFW_PLATFORM, GLFW_PLATFORM_X11);
     glfwInitHint(GLFW_X11_XCB_VULKAN_SURFACE, GLFW_TRUE);
-    #endif
+#endif
     glfwInit();
     
     glfwDefaultWindowHints();
@@ -33,6 +35,18 @@ gpu_point win_make(u32 w, u32 h){
     _window = glfwCreateWindow(w, h, "vulkantest", 0, 0);
     gpu_point size = {};
     glfwGetFramebufferSize(_window, &size.x, &size.y);
+    string s = string_format("%s/resources/icon.png",get_current_dir());
+    image_info info = {};
+    u8* pixels = load_image(s.data, &info, PNG);
+    print("Pixels %x",pixels);
+    if (pixels && glfwGetPlatform() != GLFW_PLATFORM_WAYLAND){
+        GLFWimage image = {
+            .pixels = pixels,
+            .width = info.width,
+            .height = info.height
+        };
+        glfwSetWindowIcon(_window, 1, &image);
+    }
     return size;
 }
 
