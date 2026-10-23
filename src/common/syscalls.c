@@ -6,6 +6,7 @@
 #define __USE_POSIX199309
 #include <time.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include "alloc/allocate.h"
 
 extern void free(void *ptr);
@@ -94,6 +95,15 @@ void closef(file *descriptor){
 
 }
 
+bool statf(const char *path, fs_stat *out_stat){
+    if (!path || !out_stat) return false;
+    struct stat buf = {};
+    if (stat(path, &buf) == -1) return false;
+    out_stat->type = buf.st_mode & S_IFDIR ? entry_directory : entry_file;
+    out_stat->size = buf.st_size;
+    return true;
+}
+
 void msleep(uint64_t msec){
     struct timespec rqtp;
     rqtp.tv_sec = msec / 1000;
@@ -124,4 +134,8 @@ int system_focus(const char *command, u32 focus_mode){
 bool send_signal(signal_types type, u16 proc_id){
     print("[SIGNAL implementation error] not implemented for cross platform");
     return 0;
+}
+
+bool thread_inspect(debug_inspect_types type, u16 pid, u16 tid){
+    return true;
 }
