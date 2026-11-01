@@ -139,3 +139,11 @@ bool send_signal(signal_types type, u16 proc_id){
 bool thread_inspect(debug_inspect_types type, u16 pid, u16 tid){
     return true;
 }
+
+extern size_t transformf(const char* path, void* buf, size_t size){
+    return 0;
+}
+
+size_t dir_list(const char *path, void *buf, size_t size, u64 *offset){
+    return 0;
+}
