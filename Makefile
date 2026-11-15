@@ -2,6 +2,7 @@ include ./common.mk
 
 WINDOW_BACKEND ?= glfw
 GRAPH_BACKEND ?= opengl
+AUDIO_BACKEND ?= miniaudio
 
 PLATFORM_INCLUDES := -I./vendored/glfw/include/GLFW
 # PLATFORM_INCLUDES := -I./vendored/raylib/src
@@ -12,6 +13,12 @@ INCLUDES := $(PLATFORM_INCLUDES) -I./vendored/redlib -I./vendored/three2d -I./sr
 C_SRC := $(shell find ./src/common -name "*.c") $(shell xargs -r -n1 printf 'vendored/redlib/%s\n' < vendored/redlib/simplemake)
 
 M_SRC := 
+
+ifneq ($(AUDIO_BACKEND),)
+	INCLUDES += -I./src/$(AUDIO_BACKEND) -I./vendored
+	C_SRC += $(shell find ./src/$(AUDIO_BACKEND) -name "*.c")
+	# C_SRC += $(shell xargs -r -n1 printf './vendored/$(AUDIO_BACKEND)/%s\n' < ./vendored/$(AUDIO_BACKEND)/simplemake)
+endif
 
 ifneq ($(WINDOW_BACKEND),)
 	INCLUDES += -I./src/$(WINDOW_BACKEND) 
